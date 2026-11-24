@@ -1,0 +1,33 @@
+name: Build iOS app (unsigned)
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate Xcode project
+        run: |
+          brew install xcodegen
+          xcodegen generate
+
+      - name: Build for iPhone (no signing)
+        run: |
+          xcodebuild -project FileSync.xcodeproj -scheme FileSync \
+            -sdk iphoneos -configuration Release -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY="" build
+
+      - name: Package unsigned IPA
+        run: |
+          mkdir Payload
+          cp -R build/Build/Products/Release-iphoneos/FileSync.app Payload/
+          zip -qr FileSync-unsigned.ipa Payload
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FileSync-unsigned-ipa
+          path: FileSync-unsigned.ipa
